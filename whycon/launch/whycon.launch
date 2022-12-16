@@ -1,0 +1,42 @@
+<launch>
+  <arg name="name" default="whycon"/>
+  <arg name="targets" default="1"/>
+
+  <!-- <group ns="camera">
+
+    <node pkg="image_proc" type="image_proc" name="image_proc"/>
+
+    <remap from="/camera/image_raw" to="/camera/color/image_raw"/>
+    <remap from="/camera/camera_info" to="/camera/color/camera_info"/>
+  </group> -->
+
+  <node name="whycon" type="whycon" pkg="whycon" output="screen">
+    <!-- <remap from="/camera/color/image_raw" to="/camera/image_raw"/>
+    <remap from="/camera/color/camera_info" to="/camera/camera_info"/> -->
+    <param name="targets" value="$(arg targets)"/>
+    <param name="name" value="$(arg name)"/>
+    <param name="targets" value="1"/>
+    <param name="max_refine" value="5"/>
+    <param name="max_attempts" value="5"/>
+    <param name="outer_diameter" value="0.55"/>
+    <param name="inner_diameter" value="0.25"/>
+  </node>
+
+  <node name="transformer" type="transformer" pkg="whycon" output="screen"/>
+</launch>
+
+
+<!-- <launch>
+  <node pkg="whycon" type="whycon" name="whycon" output="screen">
+    <remap from="/whycon/input" to="/camera/color/image_raw"/>
+    <remap from="/whycon/camera_info" to="/camera/color/camera_info"/>
+    <remap from="/whycon/input" to="/camera/image_rect_color"/>
+    <remap from="/whycon/camera_info" to="/camera/camera_info"/>
+    <param name="targets" value="1"/>
+    <param name="max_refine" value="5"/>
+    <param name="max_attempts" value="5"/>
+    <param name="outer_diameter" value="0.2"/>
+    <param name="inner_diameter" value="0.1"/>
+    <param name="axis" value="vrep"/>
+  </node>
+</launch> -->

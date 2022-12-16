@@ -1,0 +1,4 @@
+<launch>
+    <node name="ros_viz" pkg="ros_viz" type="marker_node" output="screen"/>
+	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find ros_viz)/rviz/local_pos_marker.rviz"/>
+</launch>
