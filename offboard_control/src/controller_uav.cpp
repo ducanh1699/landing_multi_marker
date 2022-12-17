@@ -317,8 +317,8 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 		PID_y.setUMax(0.1);
 		PID_y.setUMin(-0.1);
 
-		PID_z.setUMax(0.1);
-		PID_z.setUMin(-0.3);
+		PID_z.setUMax(0.2);
+		PID_z.setUMin(-0.2);
 	}
 
 	switch (node_state) {
@@ -356,16 +356,7 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 					Eigen::Vector3d velocity_vector;
 					Eigen::Vector3d ErrorDistance;
 
-					// double yaw_rate;
-					// velocity_vector(0) = PID_x.compute(targetPos_(0), mavPos_(0));
-					// velocity_vector(1) = PID_y.compute(targetPos_(1), mavPos_(1));
-					// velocity_vector(2) = PID_z.compute(targetPos_(2), mavPos_(2));
-					// yaw_rate = PID_yaw.compute(mavYaw_, curYaw_);
-					// ROS_INFO_STREAM("Got pose! " << curYaw_ << " y " << mavYaw_);
-
-					// publish_PIDterm(PID_z.getPTerm(),PID_z.getITerm(), PID_z.getDTerm());
-					// ROS_INFO_STREAM("Got pose! Drone Velocity x " << velocity_vector(0) << " y " << velocity_vector(1) << " z " << velocity_vector(2));
-					if (StartLanding_)
+					if (StartLanding_ && marker_pose_status == RECEIVED_POSE)
 					{
 						targetPosPredict_(0) = targetPosPredict_(0) - (0.01 * mavVel_(0));
 						targetPosPredict_(1) = targetPosPredict_(1) - (0.01 * mavVel_(1));
@@ -389,8 +380,12 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 							// ROS_INFO("Error: [%f, %f]", targetPosPredict_(0), targetPosPredict_(1));
 							getErrorDistanceToTarget(targetPosPredict_, Frame::UAV_BODY_OFFSET_FRAME, ErrorDistance);
 						}
+						if (abs(ErrorDistance(0))< 0.05 && abs(ErrorDistance(1)) < 0.05){
+							ErrorDistance(0) = 0.0;
+							ErrorDistance(1) = 0.0;
+						}
 					}
-					else
+					if(!StartLanding_ || marker_pose_status == NOT_RECEIVED_POSE)
 					{
 						getErrorDistanceToTarget(targetPos_, Frame::UAV_NEU_FRAME, ErrorDistance);
 					}
@@ -398,9 +393,6 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 					 * UAV_NEU_FRAME: If target is a point in the NEU frame
 					 * UAV_BODY_FRAME: If target is a point offset in the BODY frame
 					*/
-					// if (!StartLanding_) {
-					// 	getErrorDistanceToTarget(targetPos_, Frame::UAV_NEU_FRAME, ErrorDistance);
-					// }
 
 					velocity_vector(0) = PID_x.compute(ErrorDistance(0), 0);
 					velocity_vector(1) = PID_y.compute(ErrorDistance(1), 0);
