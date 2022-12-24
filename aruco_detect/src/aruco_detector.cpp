@@ -76,7 +76,7 @@ public:
 			distCoeffs.at<double>(0,i) = 0.0;
 		}
 
-		dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_ARUCO_ORIGINAL);
+		dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_1000);
 	}
 
 	void image_callback(const sensor_msgs::ImageConstPtr& msg)

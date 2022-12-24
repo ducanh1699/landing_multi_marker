@@ -311,11 +311,11 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 		calculate_range = CALCULATED;
 
 		ROS_INFO("Update MAX MIN PID");
-		PID_x.setUMax(0.1);
-		PID_x.setUMin(-0.1);
+		PID_x.setUMax(0.12);
+		PID_x.setUMin(-0.12);
 
-		PID_y.setUMax(0.1);
-		PID_y.setUMin(-0.1);
+		PID_y.setUMax(0.12);
+		PID_y.setUMin(-0.12);
 
 		PID_z.setUMax(0.2);
 		PID_z.setUMin(-0.2);
