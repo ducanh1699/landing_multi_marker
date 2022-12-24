@@ -3,6 +3,10 @@
 
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
+#include <tf/tf.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/subscriber.h>
 #include <ros/subscribe_options.h>
 
 #include <stdio.h>
@@ -91,6 +95,7 @@ class velocityCtrl
         ros::ServiceClient arming_client_;
         ros::ServiceClient set_mode_client_;
 
+        ros::Timer markerPosition_timer;
         ros::Timer cmdloop_timer_, statusloop_timer_;
         ros::ServiceServer land_service_;
 
@@ -145,6 +150,10 @@ class velocityCtrl
         double kpyaw_,kdyaw_, kiyaw_;
 		double mavYaw_, curYaw_;
 
+        std::string bodyFrame;
+        std::string markerAruco, markerApirlTag, markerWhycon;
+        std::string name_;
+
         double initTargetPos_x_, initTargetPos_y_, initTargetPos_z_;
         Eigen::Vector3d targetPos_,targetPosPredict_;
 		Eigen::Vector4d targetAtt_;
@@ -155,9 +164,13 @@ class velocityCtrl
 
         PidControllerBase PID_x, PID_y, PID_z, PID_yaw;
 
+        geometry_msgs::Point whycon_position, aruco_position, apirltag_position;
+
 		std::vector<double> setPoint_[4];
 
 		double period, t;
+
+        boost::shared_ptr<tf::TransformListener> transform_listener;
 
     public:
         velocityCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private);
@@ -186,6 +199,9 @@ class velocityCtrl
 
 		double Query_DecreaseAltitude();
 
+        void markerPositionCallback(const ros::TimerEvent &event);
+
+        void calculate_landing_range();
 };
 
 #endif

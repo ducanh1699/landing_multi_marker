@@ -29,11 +29,15 @@ velocityCtrl::velocityCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_
 {
 	std::string marker_pose_topic_name;
 
+	transform_listener = boost::make_shared<tf::TransformListener>();
+
 	nh_private_.param("marker_pose_topic", marker_pose_topic_name, std::string("/aruco_detect/pose"));
 
 	mavposeSub_ = nh_.subscribe("mavros/local_position/pose", 1, &velocityCtrl::mavposeCallback, this, ros::TransportHints().tcpNoDelay());
 
 	cmdloop_timer_ = nh_.createTimer(ros::Duration(0.01), &velocityCtrl::cmdloopCallback,this);  // Define timer for constant loop rate
+
+	markerPosition_timer = nh_.createTimer(ros::Duration(0.01), &velocityCtrl::markerPositionCallback, this);
 
 	setRaw_pub = nh_.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local",10);
 
@@ -95,6 +99,10 @@ velocityCtrl::velocityCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_
 	nh_private_.param<double>("kd_yaw_", kdyaw_, 0.15);
 	nh_private_.param<double>("ki_yaw_", kiyaw_, 0.5);
 
+	nh_private_.param<string>("body_frame", bodyFrame, "/base_link");
+	nh_private_.param<string>("aruco_frame", markerAruco, "/aruco_gridboard");
+	nh_private_.param<string>("apirl_tag", markerApirlTag, "/apirltag_gridboard");
+	nh_private_.param<string>("whycon_frame", markerWhycon, "/whycon");
 	/* Get param set points */
 
 	// nh_.getParam("/point1", setPoint_[0]);
@@ -147,29 +155,211 @@ velocityCtrl::velocityCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_
 	period = 0;
 
 	cam2drone_matrix_ << 0.0 , -1.0 , 0.0 , -1.0 , 0.0 , 0.0 , 0.0 , 0.0 , -1.0;
+	markerPosition_timer.stop();
+}
 
+void velocityCtrl::markerPositionCallback(const ros::TimerEvent &event)
+{	
+	if (mavPos_(2) >= sTransitionPoint_1.atitule)
+	{
+		if(transform_listener->canTransform(markerWhycon, bodyFrame, ros::Time(0)))
+		{
+			name_ = markerWhycon;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), whycon_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = whycon_position.x;
+			markerPosInBodyFrame_(1) = whycon_position.y;
+			markerPosInBodyFrame_(2) = whycon_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Whycon is used in range 1: " << range_err); 
+
+		}
+		else if (transform_listener->canTransform(bodyFrame, markerAruco, ros::Time(0)))
+		{
+			name_ = markerAruco;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), aruco_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = aruco_position.x;
+			markerPosInBodyFrame_(1) = aruco_position.y;
+			markerPosInBodyFrame_(2) = aruco_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Aruco is used in range 1: " << range_err); 
+		}
+		else if (transform_listener->canTransform(bodyFrame, markerApirlTag, ros::Time(0)))
+		{
+			name_ = markerApirlTag;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), apirltag_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = apirltag_position.x;
+			markerPosInBodyFrame_(1) = apirltag_position.y;
+			markerPosInBodyFrame_(2) = apirltag_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Apirltag is used in range 1: " << range_err); 
+		}
+		else
+		{
+			marker_pose_status = NOT_RECEIVED_POSE;
+		}
+	}
+	else if (mavPos_(2) >= sTransitionPoint_2.atitule)
+	{
+		if (transform_listener->canTransform(bodyFrame, markerAruco, ros::Time(0)))
+		{
+			name_ = markerAruco;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), aruco_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = aruco_position.x;
+			markerPosInBodyFrame_(1) = aruco_position.y;
+			markerPosInBodyFrame_(2) = aruco_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Aruco is used in range 2: " << range_err); 
+		}
+		else if (transform_listener->canTransform(markerWhycon, bodyFrame, ros::Time(0)))
+		{
+			name_ = markerWhycon;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), whycon_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = whycon_position.x;
+			markerPosInBodyFrame_(1) = whycon_position.y;
+			markerPosInBodyFrame_(2) = whycon_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Whycon is used in range 2: " << range_err); 
+		}
+		else if (transform_listener->canTransform(bodyFrame, markerApirlTag, ros::Time(0)))
+		{
+			name_ = markerApirlTag;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), apirltag_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = apirltag_position.x;
+			markerPosInBodyFrame_(1) = apirltag_position.y;
+			markerPosInBodyFrame_(2) = apirltag_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Apirltag is used in range 2: " << range_err); 
+		}
+		else
+		{
+			marker_pose_status = NOT_RECEIVED_POSE;
+		}
+	}
+	else if (mavPos_(2) >= sTransitionPoint_3.atitule)
+	{
+		if (transform_listener->canTransform(bodyFrame, markerApirlTag, ros::Time(0)))
+		{
+			name_ = markerApirlTag;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), apirltag_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = apirltag_position.x;
+			markerPosInBodyFrame_(1) = apirltag_position.y;
+			markerPosInBodyFrame_(2) = apirltag_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Apirltag is used in range 3: " << range_err); 
+		}
+		else if (transform_listener->canTransform(bodyFrame, markerAruco, ros::Time(0)))
+		{
+			name_ = markerAruco;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), aruco_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = aruco_position.x;
+			markerPosInBodyFrame_(1) = aruco_position.y;
+			markerPosInBodyFrame_(2) = aruco_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Aruco is used in range 3: " << range_err); 
+		}
+		else if (transform_listener->canTransform(markerWhycon, bodyFrame, ros::Time(0)))
+		{
+			name_ = markerWhycon;
+			tf::StampedTransform transform;
+    		transform_listener->lookupTransform(bodyFrame, name_, ros::Time(0), transform);
+			tf::pointTFToMsg(transform.getOrigin(), whycon_position);
+			marker_pose_status = RECEIVED_POSE;
+			markerPosInBodyFrame_(0) = whycon_position.x;
+			markerPosInBodyFrame_(1) = whycon_position.y;
+			markerPosInBodyFrame_(2) = whycon_position.z;
+			range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+			targetPosPredict_(0) = markerPosInBodyFrame_(0);
+			targetPosPredict_(1) = markerPosInBodyFrame_(1);
+			ROS_INFO_STREAM ("Whycon is used in range 3: " << range_err); 
+		}
+		else
+		{
+			marker_pose_status = NOT_RECEIVED_POSE;
+		}
+	}
+	// if (!transform_listener->canTransform(markerWhycon, bodyFrame, ros::Time(0)))
+    //   return;
+	// tf::StampedTransform transform;
+    // transform_listener->lookupTransform(bodyFrame, markerWhycon,  
+    //                            ros::Time(0), transform);
+	// tf::pointTFToMsg(transform.getOrigin(), whycon_position);
+
+	// if (!transform_listener->canTransform(bodyFrame, markerAruco, ros::Time(0)))
+    //   return;
+	// tf::StampedTransform transform1;
+    // transform_listener->lookupTransform(bodyFrame, markerAruco,  
+    //                            ros::Time(0), transform1);
+	// tf::pointTFToMsg(transform1.getOrigin(), aruco_position);
+
+	// if (!transform_listener->canTransform(bodyFrame, markerApirlTag, ros::Time(0)))
+    //   return;
+	// tf::StampedTransform transform2;
+    // transform_listener->lookupTransform(bodyFrame , markerApirlTag,  
+    //                            ros::Time(0), transform2);
+	// tf::pointTFToMsg(transform2.getOrigin(), apirltag_position);
+			
 }
 
 void velocityCtrl::ReceivedMarkerPose_Callback(const geometry_msgs::PoseStamped &msg){
 
-	Eigen::Vector3d markerInCamFrame;
-	/* Marker ----> Drone Frame*/
-	markerInCamFrame << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
+	// Eigen::Vector3d markerInCamFrame;
+	// /* Marker ----> Drone Frame*/
+	// markerInCamFrame << msg.pose.position.x, msg.pose.position.y, msg.pose.position.z;
 
-	markerPosInBodyFrame_ = cam2drone_matrix_ * markerInCamFrame;
+	// markerPosInBodyFrame_ = cam2drone_matrix_ * markerInCamFrame;
 
-	// Round cm
-	markerPosInBodyFrame_(0) = round(markerPosInBodyFrame_(0)*100) / 100;
-	markerPosInBodyFrame_(1) = round(markerPosInBodyFrame_(1)*100) / 100;
-	markerPosInBodyFrame_(2) = round(markerPosInBodyFrame_(2)*100) / 100;
+	// // Round cm
+	// markerPosInBodyFrame_(0) = round(markerPosInBodyFrame_(0)*100) / 100;
+	// markerPosInBodyFrame_(1) = round(markerPosInBodyFrame_(1)*100) / 100;
+	// markerPosInBodyFrame_(2) = round(markerPosInBodyFrame_(2)*100) / 100;
 
-	targetPosPredict_(0) = markerPosInBodyFrame_(0);
-	targetPosPredict_(1) = markerPosInBodyFrame_(1);
+	// targetPosPredict_(0) = markerPosInBodyFrame_(0);
+	// targetPosPredict_(1) = markerPosInBodyFrame_(1);
 
-	range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
+	// range_err = sqrt(pow(markerPosInBodyFrame_(0), 2) + pow(markerPosInBodyFrame_(1), 2));
 
-	// ROS_INFO_STREAM("Distance to Marker: " << markerPosInBodyFrame_);
-	marker_pose_status = RECEIVED_POSE;
+	// // ROS_INFO_STREAM("Distance to Marker: " << markerPosInBodyFrame_);
+	// marker_pose_status = RECEIVED_POSE;
 	// std::cout << "point des" << point_des << std::endl;
 };
 
@@ -191,7 +381,7 @@ bool velocityCtrl::EnableLand_Service(std_srvs::SetBool::Request &request, std_s
 
 	ROS_INFO_STREAM("Start landing on marker.");
 	StartLanding_ = true;
-
+	markerPosition_timer.start();
 	return true;
 }
 
@@ -229,7 +419,6 @@ void velocityCtrl::mavtwistCallback(const geometry_msgs::TwistStamped &msg) {
 double velocityCtrl::Query_DecreaseAltitude()
 {
 	if ((sTransitionPoint_1.range < range_err) && (mavPos_(2) >= sTransitionPoint_1.atitule)) {
-
 		return ALLOW_DECREASE;
 	}
 	else if ((sTransitionPoint_2.range < range_err) && (mavPos_(2) >= sTransitionPoint_2.atitule)) {
@@ -295,7 +484,7 @@ bool velocityCtrl::check_position(float error, Eigen::Vector3d current, Eigen::V
 		return false;
 }
 
-void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
+void velocityCtrl::calculate_landing_range()
 {
 	if (StartLanding_ && marker_pose_status == RECEIVED_POSE && calculate_range == NOT_CALCULATED) {
 
@@ -311,16 +500,23 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 		calculate_range = CALCULATED;
 
 		ROS_INFO("Update MAX MIN PID");
-		PID_x.setUMax(0.1);
-		PID_x.setUMin(-0.1);
+		PID_x.setUMax(0.12);
+		PID_x.setUMin(-0.12);
 
-		PID_y.setUMax(0.1);
-		PID_y.setUMin(-0.1);
+		PID_y.setUMax(0.12);
+		PID_y.setUMin(-0.12);
 
 		PID_z.setUMax(0.2);
 		PID_z.setUMin(-0.2);
 	}
+	else
+	{
+		return;
+	}
+}
 
+void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
+{
 	switch (node_state) {
 		case WAITING_FOR_HOME_POSE:
 		{
@@ -355,7 +551,7 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 					// ROS_INFO("Got pose! Drone Velocity mode");
 					Eigen::Vector3d velocity_vector;
 					Eigen::Vector3d ErrorDistance;
-
+					calculate_landing_range();
 					if (StartLanding_ && marker_pose_status == RECEIVED_POSE)
 					{
 						targetPosPredict_(0) = targetPosPredict_(0) - (0.01 * mavVel_(0));
@@ -411,7 +607,7 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 					// debug_yaw.publish(msg_yaw);
 					// pubVelocity(velocity_vector, yaw_rate);
 					pubVelocity(velocity_vector);
-					if((mavPos_(2) > 10.0) || (mavPos_(2) <= 1.0)){
+					if((mavPos_(2) > 15.0) || (mavPos_(2) <= 1.0)){
 						node_state = LANDING;
 					}
 					break;

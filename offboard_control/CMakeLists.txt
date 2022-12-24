@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   dynamic_reconfigure
+  message_filters
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -119,7 +121,8 @@ catkin_package(
   rospy
   std_msgs
   sensor_msgs
-
+  tf
+  message_filters
 #  DEPENDS system_lib
 )
 

@@ -60,7 +60,7 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr& image_msg, co
 
   if (dis_coeff_temp.empty())
   {
-      dis_coeff_temp = cv::Mat::zeros(1, 5, CV_32F);
+      dis_coeff_temp = cv::Mat::zeros(1, 5, CV_64F);
   }
 
   if (!system)
@@ -104,7 +104,7 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
     output_image = cv_ptr->image.clone();
 
   geometry_msgs::PoseArray pose_array;
-
+  // std::cout << system->targets << std::endl;
   // go through detected targets
   for (int i = 0; i < system->targets; i++) {
     const whycon::CircleDetector::Circle& circle = system->get_circle(i);
@@ -142,16 +142,25 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
     pose_array.header = header;
     pose_array.header.frame_id = frame_id;
     poses_pub.publish(pose_array);
+    geometry_msgs::Pose term_;
+    term_.position.x = (pose_array.poses[0].position.x + pose_array.poses[1].position.x + pose_array.poses[2].position.x + pose_array.poses[3].position.x)/4;
+    term_.position.y = (pose_array.poses[0].position.y + pose_array.poses[1].position.y + pose_array.poses[2].position.y + pose_array.poses[3].position.y)/4;
+    term_.position.z = (pose_array.poses[0].position.z + pose_array.poses[1].position.z + pose_array.poses[2].position.z + pose_array.poses[3].position.z)/4;
+    term_.orientation.w = 1.0;
+    term_.orientation.x = 0.0;
+    term_.orientation.y = 0.0;
+    term_.orientation.z = 0.0;
+    tf::poseMsgToTF(term_,similarity);
   }
 
   if (transformation_loaded)
   {
-	transform_broadcaster->sendTransform(tf::StampedTransform(similarity, header.stamp, world_frame_id, frame_id));
+    transform_broadcaster->sendTransform(tf::StampedTransform(similarity, header.stamp, world_frame_id, frame_id));
 
-	whycon::Projection projection_msg;
-	projection_msg.header = header;
-	for (size_t i = 0; i < projection.size(); i++) projection_msg.projection[i] = projection[i];
-	projection_pub.publish(projection_msg);
+    whycon::Projection projection_msg;
+    projection_msg.header = header;
+    for (size_t i = 0; i < projection.size(); i++) projection_msg.projection[i] = projection[i];
+    projection_pub.publish(projection_msg);
   }
 }
 

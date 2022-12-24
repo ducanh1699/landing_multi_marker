@@ -15,11 +15,11 @@
     <remap from="/camera/color/camera_info" to="/camera/camera_info"/> -->
     <param name="targets" value="$(arg targets)"/>
     <param name="name" value="$(arg name)"/>
-    <param name="targets" value="1"/>
+    <param name="targets" value="4"/>
     <param name="max_refine" value="5"/>
     <param name="max_attempts" value="5"/>
-    <param name="outer_diameter" value="0.55"/>
-    <param name="inner_diameter" value="0.25"/>
+    <param name="outer_diameter" value="0.3"/>
+    <param name="inner_diameter" value="0.125"/>
   </node>
 
   <node name="transformer" type="transformer" pkg="whycon" output="screen"/>
