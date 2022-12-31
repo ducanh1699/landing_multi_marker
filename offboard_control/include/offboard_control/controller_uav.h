@@ -72,8 +72,8 @@ struct TransitionPoint {
 #define NOT_ALLOW_DECREASE	0
 
 #define ANGLE_1 			15.0
-#define ANGLE_2 			10.0
-#define ANGLE_3 			10.0
+#define ANGLE_2 			8.0
+#define ANGLE_3 			4.0
 
 
 class velocityCtrl

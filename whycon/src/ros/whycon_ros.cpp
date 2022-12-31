@@ -98,7 +98,7 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
 
   if (!publish_images && !publish_poses) return;
 
-  // prepare image outpu
+  // prepare image output
   cv::Mat output_image;
   if (publish_images)
     output_image = cv_ptr->image.clone();
@@ -129,6 +129,7 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
       p.position.z = pose.pos(2);
       p.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose.rot(0), pose.rot(1));
       pose_array.poses.push_back(p);
+      // ROS_INFO_STREAM("p: " << p.position.x << " " << p.position.y << " " << p.position.z);
     }
   }
 
@@ -143,9 +144,12 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
     pose_array.header.frame_id = frame_id;
     poses_pub.publish(pose_array);
     geometry_msgs::Pose term_;
-    term_.position.x = (pose_array.poses[0].position.x + pose_array.poses[1].position.x + pose_array.poses[2].position.x + pose_array.poses[3].position.x)/4;
-    term_.position.y = (pose_array.poses[0].position.y + pose_array.poses[1].position.y + pose_array.poses[2].position.y + pose_array.poses[3].position.y)/4;
-    term_.position.z = (pose_array.poses[0].position.z + pose_array.poses[1].position.z + pose_array.poses[2].position.z + pose_array.poses[3].position.z)/4;
+    // term_.position.x = (pose_array.poses[0].position.x + pose_array.poses[1].position.x + pose_array.poses[2].position.x + pose_array.poses[3].position.x)/4;
+    // term_.position.y = (pose_array.poses[0].position.y + pose_array.poses[1].position.y + pose_array.poses[2].position.y + pose_array.poses[3].position.y)/4;
+    // term_.position.z = (pose_array.poses[0].position.z + pose_array.poses[1].position.z + pose_array.poses[2].position.z + pose_array.poses[3].position.z)/4;
+    term_.position.x = pose_array.poses[0].position.x;
+    term_.position.y = pose_array.poses[0].position.y;
+    term_.position.z = pose_array.poses[0].position.z;
     term_.orientation.w = 1.0;
     term_.orientation.x = 0.0;
     term_.orientation.y = 0.0;

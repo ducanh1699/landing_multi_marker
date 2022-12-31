@@ -15,7 +15,7 @@
     <remap from="/camera/color/camera_info" to="/camera/camera_info"/> -->
     <param name="targets" value="$(arg targets)"/>
     <param name="name" value="$(arg name)"/>
-    <param name="targets" value="4"/>
+    <param name="targets" value="1"/>
     <param name="max_refine" value="5"/>
     <param name="max_attempts" value="5"/>
     <param name="outer_diameter" value="0.3"/>

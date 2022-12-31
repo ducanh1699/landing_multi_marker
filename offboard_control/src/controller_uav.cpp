@@ -607,7 +607,7 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 					// debug_yaw.publish(msg_yaw);
 					// pubVelocity(velocity_vector, yaw_rate);
 					pubVelocity(velocity_vector);
-					if((mavPos_(2) > 15.0) || (mavPos_(2) <= 1.0)){
+					if((mavPos_(2) > 15.0) || (mavPos_(2) <= 0.5)){
 						node_state = LANDING;
 					}
 					break;
