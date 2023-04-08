@@ -21,7 +21,7 @@
 #   ]
 standalone_tags:
   [
-    # {id: 0, size: 0.55, name: tag_0},
+    {id: 42, size: 0.111, name: apirltag_gridboard},
   ]
 # ## Tag bundle definitions
 # ### Remarks
@@ -46,14 +46,14 @@ standalone_tags:
 #   ]
 tag_bundles:
   [
-    {
-      name: 'apirltag_gridboard',
-      layout:
-        [
-          {id: 52, size: 0.0833, x: -0.085, y: -0.085, z: 0.0, qw: 1.0000, qx: 0.0000, qy: 0.0000, qz: 0.0000},
-          {id: 42, size: 0.0833, x: 0.085, y: -0.085, z: 0.0, qw: 1.0000, qx: 0.0000, qy: 0.0000, qz: 0.0000},
-          {id: 37, size: 0.0833, x: 0.085, y: 0.085, z: 0.0, qw: 1.0000, qx: 0.0000, qy: 0.0000, qz: 0.0000},
-          {id: 24, size: 0.0833, x: -0.085, y: 0.085, z: 0.0, qw: 1.0000, qx: 0.0000, qy: 0.0000, qz: 0.0000}
-        ]
-    }
+    # {
+    #   name: 'apirltag_gridboard',
+    #   layout:
+    #     [
+    #       {id: 1, size: 0.0833, x: -0.085, y: -0.085, z: 0.0, qw: 1.0000, qx: 0.0000, qy: 0.0000, qz: 0.0000},
+    #       {id: 2, size: 0.0833, x: 0.085, y: -0.085, z: 0.0, qw: 1.0000, qx: 0.0000, qy: 0.0000, qz: 0.0000},
+    #       {id: 3, size: 0.0833, x: 0.085, y: 0.085, z: 0.0, qw: 1.0000, qx: 0.0000, qy: 0.0000, qz: 0.0000},
+    #       {id: 4, size: 0.0833, x: -0.085, y: 0.085, z: 0.0, qw: 1.0000, qx: 0.0000, qy: 0.0000, qz: 0.0000}
+    #     ]
+    # }
   ]

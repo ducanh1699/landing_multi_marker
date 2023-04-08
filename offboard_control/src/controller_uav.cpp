@@ -58,7 +58,7 @@ velocityCtrl::velocityCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_
 	yawreferenceSub_ = nh_.subscribe("reference/yaw", 1, &velocityCtrl::yawtargetCallback, this, ros::TransportHints().tcpNoDelay());
 
 	debug_yaw = nh_.advertise<std_msgs::Float64> ("/debug_yaw_term", 10);
-
+	target_vel_sub = nh_.subscribe("/reference/setpoint", 10, &velocityCtrl::targetVelCallback, this);
 	marker_pose_sub = nh_.subscribe
 		(marker_pose_topic_name, 1, &velocityCtrl::ReceivedMarkerPose_Callback, this, ros::TransportHints().tcpNoDelay());
 
@@ -71,15 +71,15 @@ velocityCtrl::velocityCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_
 	nh_private_.param<double>("init_pos_y", initTargetPos_y_, 0.0);
 	nh_private_.param<double>("init_pos_z", initTargetPos_z_, 1.0);
 
-	nh_private_.param<double>("max_out_x", max_out_x_, 0.3);
-	nh_private_.param<double>("min_out_x", min_out_x_, -0.3);
+	nh_private_.param<double>("max_out_x", max_out_x_, 0.5);
+	nh_private_.param<double>("min_out_x", min_out_x_, -0.5);
 
 	nh_private_.param<double>("Kp_x", kpx_, 1.2);
 	nh_private_.param<double>("Ki_x", kix_, 0.3);
 	nh_private_.param<double>("Kd_x", kdx_, 0.5);
 
-	nh_private_.param<double>("max_out_y", max_out_y_, 0.3);
-	nh_private_.param<double>("min_out_y", min_out_y_, -0.3);
+	nh_private_.param<double>("max_out_y", max_out_y_, 0.5);
+	nh_private_.param<double>("min_out_y", min_out_y_, -0.5);
 
 	nh_private_.param<double>("Kp_y", kpy_, 1.6);
 	nh_private_.param<double>("Ki_y", kiy_, 0.3);
@@ -379,7 +379,8 @@ void velocityCtrl::yawtargetCallback(const std_msgs::Float64 &msg) {
 
 bool velocityCtrl::EnableLand_Service(std_srvs::SetBool::Request &request, std_srvs::SetBool::Response &response) {
 
-	ROS_INFO_STREAM("Start landing on marker.");
+	ROS_INFO_STREAM("Start velocity mode.");
+	// trigger_vel_mode_ = true;
 	StartLanding_ = true;
 	markerPosition_timer.start();
 	return true;
@@ -418,18 +419,26 @@ void velocityCtrl::mavtwistCallback(const geometry_msgs::TwistStamped &msg) {
 
 double velocityCtrl::Query_DecreaseAltitude()
 {
-	if ((sTransitionPoint_1.range < range_err) && (mavPos_(2) >= sTransitionPoint_1.atitule)) {
+	if ((sTransitionPoint_1.range > range_err) && (mavPos_(2) >= sTransitionPoint_1.atitule)) {
 		return ALLOW_DECREASE;
 	}
-	else if ((sTransitionPoint_2.range < range_err) && (mavPos_(2) >= sTransitionPoint_2.atitule)) {
+	else if ((sTransitionPoint_2.range > range_err) && (mavPos_(2) >= sTransitionPoint_2.atitule)) {
 		return ALLOW_DECREASE;
 	}
-	else if ((sTransitionPoint_3.range < range_err) && (mavPos_(2) >= sTransitionPoint_3.atitule)) {
+	else if ((sTransitionPoint_3.range > range_err) && (mavPos_(2) >= sTransitionPoint_3.atitule)) {
 		return ALLOW_DECREASE;
 	}
 	else {
 		return NOT_ALLOW_DECREASE;
 	}
+}
+
+void velocityCtrl::targetVelCallback(const geometry_msgs::TwistStamped &msg)
+{
+	targetVel_(0) = msg.twist.linear.x;
+	targetVel_(1) = msg.twist.linear.y;
+	targetVel_(2) = msg.twist.linear.z;
+	ROS_INFO_STREAM("Vel" << targetVel_(0) << " y " << targetVel_(1) << " z " << targetVel_(2));
 }
 
 
@@ -506,8 +515,8 @@ void velocityCtrl::calculate_landing_range()
 		PID_y.setUMax(0.12);
 		PID_y.setUMin(-0.12);
 
-		PID_z.setUMax(0.2);
-		PID_z.setUMin(-0.2);
+		PID_z.setUMax(0.3);
+		PID_z.setUMin(-0.3);
 	}
 	else
 	{
@@ -602,6 +611,12 @@ void velocityCtrl::cmdloopCallback(const ros::TimerEvent &event)
 					msg.y = targetPos_(1);
 					msg.z = targetPos_(2);
 					debug_target.publish(msg);
+					// if (trigger_vel_mode_){
+					// 	velocity_vector(0) = targetVel_(0);
+					// 	velocity_vector(1) = targetVel_(1);
+					// 	velocity_vector(2) = targetVel_(2);
+					// }
+					// pubPosition(targetPos_);
 					// std_msgs::Float64 msg_yaw;
 					// msg_yaw.data = mavYaw_;
 					// debug_yaw.publish(msg_yaw);

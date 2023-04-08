@@ -18,8 +18,8 @@
     <param name="targets" value="1"/>
     <param name="max_refine" value="5"/>
     <param name="max_attempts" value="5"/>
-    <param name="outer_diameter" value="0.3"/>
-    <param name="inner_diameter" value="0.125"/>
+    <param name="outer_diameter" value="1.0"/>
+    <param name="inner_diameter" value="0.41"/>
   </node>
 
   <node name="transformer" type="transformer" pkg="whycon" output="screen"/>

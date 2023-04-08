@@ -89,6 +89,8 @@ class velocityCtrl
         ros::Subscriber yawreferenceSub_;
         ros::Subscriber target_pose;
 
+        ros::Subscriber target_vel_sub;
+
 		ros::Subscriber marker_pose_sub;
 		ros::Subscriber decrese_height_sub;
 
@@ -153,9 +155,12 @@ class velocityCtrl
         std::string bodyFrame;
         std::string markerAruco, markerApirlTag, markerWhycon;
         std::string name_;
+        
+        bool trigger_vel_mode_ = false;
 
         double initTargetPos_x_, initTargetPos_y_, initTargetPos_z_;
         Eigen::Vector3d targetPos_,targetPosPredict_;
+        Eigen::Vector3d targetVel_;
 		Eigen::Vector4d targetAtt_;
 		Eigen::Vector3d markerPosInBodyFrame_;
 		Eigen::Matrix3d cam2drone_matrix_;
@@ -187,6 +192,8 @@ class velocityCtrl
         bool landCallback(std_srvs::SetBool::Request &request, std_srvs::SetBool::Response &response);
         bool check_position(float error, Eigen::Vector3d current, Eigen::Vector3d target);
 		void publish_PIDterm( double pTerm, double iTerm, double dTerm);
+
+        void targetVelCallback(const geometry_msgs::TwistStamped &msg);
 
 		void getErrorDistanceToTarget(const Eigen::Vector3d &target_position, Frame FrameType, Eigen::Vector3d &ErrorDistance);
 		// void convertPointFromOffsetBodyToNEU(const Eigen::Vector3d &PointBody, Eigen::Vector3d &PointNEU);
